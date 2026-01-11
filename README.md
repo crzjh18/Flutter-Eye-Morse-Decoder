@@ -57,4 +57,4 @@ The app processes camera frames at 30FPS:
 This software was developed as part of a Computer Science thesis to explore "Low-Latency Eye Tracking on Mobile Devices using Hybrid Neural Networks."
 
 ---
-*Developed by [Your Name]*
+*Developed by Me
