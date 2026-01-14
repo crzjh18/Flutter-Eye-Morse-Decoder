@@ -9,7 +9,8 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:tflite_flutter/tflite_flutter.dart'; 
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:audioplayers/audioplayers.dart'; 
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:math'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,7 @@ class RobustBlinkPage extends StatefulWidget {
 
 class _RobustBlinkPageState extends State<RobustBlinkPage> {
   // --- CONTROLLERS ---
+  
   CameraController? _controller;
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -67,7 +69,9 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
   final int _dashThresholdMs = 400;   
   final int _deleteThresholdMs = 2000; 
   final int _letterGapMs = 1500;      // 1.5s = Letter
-  final int _wordGapMs = 5000;        // 5.0s = Space
+  final int _wordGapMs = 7000;        // 5.0s = Space
+
+  
   
   // SMOOTHING BUFFER
   final List<bool> _blinkHistory = []; 
@@ -134,6 +138,12 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
     );
 
     await _controller!.initialize();
+    try {
+      await _controller!.setFocusMode(FocusMode.locked);
+    } catch (e) {
+      print("Focus mode not supported on this camera, skipping.");
+    }
+
     await _tts.setLanguage("en-US");
     await _tts.setPitch(1.0);
     
@@ -309,11 +319,13 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
   }
 
   void _triggerAutoSpace() {
+    // --- NEW: PRINT TO TERMINAL ---
+    print("🖨️ INPUT: [SPACE]");
+
     setState(() {
       _decodedText += " ";
       _spaceInserted = true; 
       
-      // FIX: Speak Lowercase so it sounds like a word
       if (_speakWords && _wordBuffer.isNotEmpty) {
          _tts.speak(_wordBuffer.toLowerCase());
       }
@@ -322,24 +334,33 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
   }
 
   void _translateAndSpeak() {
-    // 1. CHECK FOR USER SHORTCUTS FIRST (RESTORED)
+    // 1. CHECK FOR USER SHORTCUTS FIRST
     if (_shortcuts.containsKey(_currentSequence)) {
       String phrase = _shortcuts[_currentSequence]!;
       
+      // --- NEW: PRINT TO TERMINAL ---
+      print("🖨️ INPUT: $phrase"); 
+      
       setState(() {
-        _decodedText += "$phrase "; // Add space automatically after a shortcut
+        _decodedText += "$phrase "; 
         _currentSequence = "";
-        _spaceInserted = true; // Prevent double spacing
+        _spaceInserted = true; 
       });
       
-      // Always speak the full phrase immediately
       _tts.speak(phrase);
-      return; // Exit function, don't do normal letter logic
+      return; 
     }
 
     // 2. NORMAL MORSE TRANSLATION
     String letter = _morseMap[_currentSequence] ?? "?";
     
+    // --- NEW: PRINT TO TERMINAL ---
+    if (letter != "?") {
+      print("🖨️ INPUT: $letter");
+    } else {
+      print("⚠️ UNKNOWN CODE: $_currentSequence");
+    }
+
     setState(() {
       _decodedText += letter;
       if (letter != "?") {
