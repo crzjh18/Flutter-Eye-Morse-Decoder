@@ -447,6 +447,10 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
       builder: (context) {
         return StatefulBuilder( 
           builder: (BuildContext context, StateSetter setModalState) {
+            
+            // Create a stable list of keys for the UI to render
+            final List<String> keys = _shortcuts.keys.toList();
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -473,6 +477,7 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                               labelText: "Code (....)",
                               labelStyle: TextStyle(color: Colors.grey),
                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
                             ),
                           ),
                         ),
@@ -486,20 +491,31 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                               labelText: "Word (WATER)",
                               labelStyle: TextStyle(color: Colors.grey),
                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
                             ),
                           ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle, color: Colors.green, size: 30),
                           onPressed: () {
-                            if (seqController.text.isNotEmpty && wordController.text.isNotEmpty) {
+                            // 1. TRIM INPUTS (Removes accidental spaces)
+                            final String seq = seqController.text.trim();
+                            final String word = wordController.text.trim();
+
+                            if (seq.isNotEmpty && word.isNotEmpty) {
+                              // 2. UPDATE PARENT STATE
                               setState(() {
-                                _shortcuts[seqController.text] = wordController.text;
+                                _shortcuts[seq] = word;
                               });
+                              
+                              // 3. REFRESH MODAL UI & CLEAR INPUTS
                               setModalState(() {
                                 seqController.clear();
                                 wordController.clear();
                               });
+                              
+                              // 4. HIDE KEYBOARD (So you can see the list)
+                              FocusScope.of(context).unfocus();
                             }
                           },
                         )
@@ -509,11 +525,13 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                     
                     // LIST OF EXISTING SHORTCUTS
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _shortcuts.length,
+                      child: keys.isEmpty 
+                      ? const Center(child: Text("No shortcuts added yet.", style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                        itemCount: keys.length,
                         itemBuilder: (context, index) {
-                          String key = _shortcuts.keys.elementAt(index);
-                          String value = _shortcuts.values.elementAt(index);
+                          String key = keys[index];
+                          String value = _shortcuts[key] ?? "";
                           return Card(
                             color: Colors.grey[800],
                             margin: const EdgeInsets.symmetric(vertical: 5),
@@ -526,7 +544,7 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                                   setState(() {
                                     _shortcuts.remove(key);
                                   });
-                                  setModalState(() {}); 
+                                  setModalState(() {}); // Refresh list
                                 },
                               ),
                             ),
