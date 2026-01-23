@@ -448,7 +448,7 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
         return StatefulBuilder( 
           builder: (BuildContext context, StateSetter setModalState) {
             
-            // Create a stable list of keys for the UI to render
+            // 1. CONVERT TO LIST: Ensures the UI updates instantly
             final List<String> keys = _shortcuts.keys.toList();
 
             return Padding(
@@ -498,24 +498,29 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                         IconButton(
                           icon: const Icon(Icons.add_circle, color: Colors.green, size: 30),
                           onPressed: () {
-                            // 1. TRIM INPUTS (Removes accidental spaces)
+                            // 2. TRIM INPUTS: Removes accidental spaces at the end
                             final String seq = seqController.text.trim();
                             final String word = wordController.text.trim();
 
                             if (seq.isNotEmpty && word.isNotEmpty) {
-                              // 2. UPDATE PARENT STATE
+                              // DEBUG LOG
+                              print("➕ Adding Shortcut: $seq = $word");
+
+                              // 3. UPDATE MAIN STATE (So the camera can use it)
                               setState(() {
                                 _shortcuts[seq] = word;
                               });
                               
-                              // 3. REFRESH MODAL UI & CLEAR INPUTS
+                              // 4. UPDATE MODAL STATE (So the list updates visually)
                               setModalState(() {
                                 seqController.clear();
                                 wordController.clear();
                               });
                               
-                              // 4. HIDE KEYBOARD (So you can see the list)
+                              // 5. HIDE KEYBOARD
                               FocusScope.of(context).unfocus();
+                            } else {
+                              print("⚠️ Cannot add empty shortcut");
                             }
                           },
                         )
@@ -541,6 +546,7 @@ class _RobustBlinkPageState extends State<RobustBlinkPage> {
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () {
+                                  print("🗑️ Deleting Shortcut: $key");
                                   setState(() {
                                     _shortcuts.remove(key);
                                   });
